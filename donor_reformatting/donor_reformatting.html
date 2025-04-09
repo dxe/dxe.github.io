@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>CSV to Table Converter</title>
+  <!-- Include Papa Parse (CDN link) for easy CSV parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+  <style>
+    #drop_zone {
+      border: 2px dashed #999;
+      border-radius: 20px;
+      width: 300px;
+      height: 150px;
+      color: #999;
+      text-align: center;
+      line-height: 150px;
+      margin: 20px;
+      cursor: pointer;
+    }
+    #drop_zone.hover {
+      border-color: #666;
+      color: #666;
+    }
+    table {
+      margin-top: 20px;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 8px;
+      border: 1px solid #aaa;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Drop CSV file below:</h2>
+  <div id="drop_zone">Drop file here</div>
+
+  <button onclick="copyTableToClipboard()">Copy Table to Clipboard</button>
+
+  <table id="outputTable">
+    <thead>
+      <tr>
+        <th>recipient</th>
+        <th>recipient_campaign</th>
+        <th>contributor</th>
+        <th>contributor_id</th>
+        <th>contributor_employer</th>
+        <th>contributor_occupation</th>
+        <th>contributor_zip</th>
+        <th>contributor_state</th>
+        <th>office_sought</th>
+        <th>amount</th>
+        <th>date</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    // --- DRAG & DROP SETUP ---
+    const dropZone = document.getElementById('drop_zone');
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('hover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('hover');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('hover');
+      const file = e.dataTransfer.files[0];
+      if (file) {
+        parseCSV(file);
+      }
+    });
+
+    // --- PARSE CSV & POPULATE TABLE ---
+    function parseCSV(file) {
+      Papa.parse(file, {
+        header: true,        // Use the first row as header
+        skipEmptyLines: true,
+        complete: (results) => {
+          populateTable(results.data);
+        }
+      });
+    }
+
+    function populateTable(rows) {
+      const tbody = document.querySelector('#outputTable tbody');
+      tbody.innerHTML = ''; // Clear existing rows
+
+      rows.forEach(row => {
+        // Map each CSV column to your desired output column name
+        const recipient = row['Recipient Name'] || '';
+        const recipient_campaign = row['Recipient Committee'] || '';
+        const contributor = row['Contributor Name'] || '';
+        const contributor_id = row['Contributor ID'] || '';
+        const contributor_employer = row['Contributor Employer'] || '';
+        const contributor_occupation = row['Contributor Occupation'] || '';
+        const contributor_zip = row['Contributor Zip Code'] || '';
+        const contributor_state = row['Contributor State'] || '';
+        const office_sought = row['Office'] || '';
+        const amount = row['Amount'] || '';
+        // Choose whichever date column you need — here we're taking 'End Date'
+        const date = row['End Date'] || '';
+
+        // Build one table row per CSV line
+        const tr = document.createElement('tr');
+        [
+          recipient,
+          recipient_campaign,
+          contributor,
+          contributor_id,
+          contributor_employer,
+          contributor_occupation,
+          contributor_zip,
+          contributor_state,
+          office_sought,
+          amount,
+          date
+        ].forEach(val => {
+          const td = document.createElement('td');
+          td.textContent = val;
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+    }
+
+    // --- COPY TABLE CONTENTS (BODY ONLY) TO CLIPBOARD ---
+    function copyTableToClipboard() {
+      const rows = document.querySelectorAll('#outputTable tbody tr');
+      let textToCopy = '';
+
+      rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const rowData = [];
+        cells.forEach(cell => {
+          // Tab-separated values
+          rowData.push(cell.textContent.trim());
+        });
+        textToCopy += rowData.join('\t') + '\n';
+      });
+
+      navigator.clipboard.writeText(textToCopy)
+        .then(() => alert('Table contents copied to clipboard!'))
+        .catch(err => console.error('Clipboard copy failed: ', err));
+    }
+  </script>
+
+</body>
+</html>
